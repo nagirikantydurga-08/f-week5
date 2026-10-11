@@ -1,0 +1,442 @@
+
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+void main() {
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => CatalogModel(),
+      child: const MyApp(),
+    ),
+  );
+}
+
+// -------------------- ITEM MODEL --------------------
+
+class Item {
+  final int id;
+  final String name;
+  final String description;
+  final IconData icon;
+  final Color color;
+  bool isFavorite;
+
+  Item({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.icon,
+    required this.color,
+    this.isFavorite = false,
+  });
+}
+
+// -------------------- CATALOG MODEL --------------------
+
+class CatalogModel extends ChangeNotifier {
+  final List<Item> _items = [
+    Item(
+      id: 1,
+      name: 'Flutter',
+      description: 'Mobile app development',
+      icon: Icons.phone_android,
+      color: Colors.blue,
+    ),
+    Item(
+      id: 2,
+      name: 'Python',
+      description: 'Programming language',
+      icon: Icons.code,
+      color: Colors.green,
+    ),
+    Item(
+      id: 3,
+      name: 'Web Development',
+      description: 'HTML, CSS and JavaScript',
+      icon: Icons.web,
+      color: Colors.orange,
+    ),
+    Item(
+      id: 4,
+      name: 'Data Science',
+      description: 'Data analysis and insights',
+      icon: Icons.analytics,
+      color: Colors.purple,
+    ),
+    Item(
+      id: 5,
+      name: 'Hackathons',
+      description: 'Build innovative projects',
+      icon: Icons.emoji_events,
+      color: Colors.red,
+    ),
+    Item(
+      id: 6,
+      name: 'Certificates',
+      description: 'Professional achievements',
+      icon: Icons.workspace_premium,
+      color: Colors.teal,
+    ),
+  ];
+
+  List<Item> get items => List.unmodifiable(_items);
+
+  int get favoriteCount =>
+      _items.where((item) => item.isFavorite).length;
+
+  void toggleFavorite(int id) {
+    final index = _items.indexWhere((item) => item.id == id);
+
+    if (index != -1) {
+      _items[index].isFavorite = !_items[index].isFavorite;
+      notifyListeners();
+    }
+  }
+}
+
+// -------------------- MAIN APP --------------------
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Responsive Catalog',
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.indigo,
+        ),
+        scaffoldBackgroundColor: const Color(0xFFF5F6FA),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.indigo,
+          foregroundColor: Colors.white,
+          centerTitle: false,
+        ),
+        cardTheme: CardThemeData(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      ),
+      home: const CatalogScreen(),
+    );
+  }
+}
+
+// -------------------- RESPONSIVE SCREEN --------------------
+
+class CatalogScreen extends StatelessWidget {
+  const CatalogScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final favoriteCount =
+        context.watch<CatalogModel>().favoriteCount;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Responsive Catalog'),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Center(
+              child: Chip(
+                avatar: const Icon(
+                  Icons.favorite,
+                  color: Colors.red,
+                  size: 20,
+                ),
+                label: Text('Favorites: $favoriteCount'),
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth >= 1024) {
+            return const DesktopLayout();
+          } else if (constraints.maxWidth >= 600) {
+            return const TabletLayout();
+          } else {
+            return const MobileLayout();
+          }
+        },
+      ),
+    );
+  }
+}
+
+// -------------------- REUSABLE ITEM CARD --------------------
+
+class ItemCard extends StatelessWidget {
+  final Item item;
+  final bool compact;
+
+  const ItemCard({
+    super.key,
+    required this.item,
+    this.compact = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: EdgeInsets.all(compact ? 12 : 16),
+        child: Row(
+          children: [
+            Container(
+              width: compact ? 46 : 56,
+              height: compact ? 46 : 56,
+              decoration: BoxDecoration(
+                color: item.color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                item.icon,
+                color: item.color,
+                size: compact ? 26 : 30,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    item.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    item.description,
+                    style: TextStyle(
+                      color: Colors.grey.shade700,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              tooltip: item.isFavorite
+                  ? 'Remove from favorites'
+                  : 'Add to favorites',
+              icon: Icon(
+                item.isFavorite
+                    ? Icons.star
+                    : Icons.star_border,
+                color: item.isFavorite
+                    ? Colors.amber.shade700
+                    : Colors.grey,
+                size: 28,
+              ),
+              onPressed: () {
+                Provider.of<CatalogModel>(
+                  context,
+                  listen: false,
+                ).toggleFavorite(item.id);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// -------------------- MOBILE LAYOUT --------------------
+
+class MobileLayout extends StatelessWidget {
+  const MobileLayout({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final items = context.watch<CatalogModel>().items;
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(12),
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        return ItemCard(item: items[index]);
+      },
+    );
+  }
+}
+
+// -------------------- TABLET LAYOUT --------------------
+
+class TabletLayout extends StatelessWidget {
+  const TabletLayout({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final items = context.watch<CatalogModel>().items;
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: items.length,
+      gridDelegate:
+          const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        mainAxisExtent: 100,
+      ),
+      itemBuilder: (context, index) {
+        return ItemCard(
+          item: items[index],
+          compact: true,
+        );
+      },
+    );
+  }
+}
+
+// -------------------- DESKTOP LAYOUT --------------------
+
+class DesktopLayout extends StatelessWidget {
+  const DesktopLayout({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final catalog = context.watch<CatalogModel>();
+
+    return Row(
+      children: [
+        NavigationRail(
+          selectedIndex: 0,
+          labelType: NavigationRailLabelType.all,
+          leading: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Icon(
+              Icons.dashboard,
+              size: 32,
+              color: Colors.indigo,
+            ),
+          ),
+          destinations: [
+            const NavigationRailDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home),
+              label: Text('Home'),
+            ),
+            NavigationRailDestination(
+              icon: const Icon(Icons.star_border),
+              selectedIcon: const Icon(Icons.star),
+              label: Text('Favorites (${catalog.favoriteCount})'),
+            ),
+          ],
+        ),
+        const VerticalDivider(width: 1),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Explore Catalog',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: GridView.builder(
+                    itemCount: catalog.items.length,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      mainAxisExtent: 100,
+                    ),
+                    itemBuilder: (context, index) {
+                      return ItemCard(
+                        item: catalog.items[index],
+                        compact: true,
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const CounterWidget(),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// -------------------- LOCAL STATE COUNTER --------------------
+
+class CounterWidget extends StatefulWidget {
+  const CounterWidget({super.key});
+
+  @override
+  State<CounterWidget> createState() => _CounterWidgetState();
+}
+
+class _CounterWidgetState extends State<CounterWidget> {
+  int _counter = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 12,
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.touch_app,
+              color: Colors.indigo,
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Desktop Local Counter',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            Text(
+              'Count: $_counter',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(width: 12),
+            FilledButton.icon(
+              onPressed: () {
+                setState(() {
+                  _counter++;
+                });
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('Increment'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
